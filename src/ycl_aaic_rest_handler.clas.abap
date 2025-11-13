@@ -52,6 +52,33 @@ CLASS ycl_aaic_rest_handler IMPLEMENTATION.
 
     ENDIF.
 
+    " Logoff
+    IF to_lower( lt_path_info[ 1 ] ) = 'logoff'.
+
+      TRY.
+
+          cl_web_http_server_utility=>logoff(
+            EXPORTING
+              redirect_url              = '/sap/public/bc/icf/logoff'
+              request                   = request
+          ).
+
+        CATCH cx_logoff_failed.
+      ENDTRY.
+
+      RETURN.
+
+    ENDIF.
+
+    " Stateless or Statefull session
+    cl_web_http_server_utility=>set_session_stateful(
+      stateful = COND #( WHEN request->get_form_field( i_name = 'statefull' ) IS NOT INITIAL
+                         THEN cl_web_http_server_utility=>co_enabled
+                         ELSE cl_web_http_server_utility=>co_disabled )
+      path     = ''
+      request  = request
+    ).
+
     " Get Resource Instance
     """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
     me->get_rest_resource_instance(
