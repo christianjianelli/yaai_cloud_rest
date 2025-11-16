@@ -23,7 +23,8 @@ ENDCLASS.
 
 
 
-CLASS ycl_aaic_rest_resource IMPLEMENTATION.
+CLASS YCL_AAIC_REST_RESOURCE IMPLEMENTATION.
+
 
   METHOD yif_aaic_rest_resource~create.
 
@@ -34,6 +35,7 @@ CLASS ycl_aaic_rest_resource IMPLEMENTATION.
 
   ENDMETHOD.
 
+
   METHOD yif_aaic_rest_resource~read.
 
     me->_method_not_allowed(
@@ -42,6 +44,7 @@ CLASS ycl_aaic_rest_resource IMPLEMENTATION.
     ).
 
   ENDMETHOD.
+
 
   METHOD yif_aaic_rest_resource~update.
 
@@ -52,6 +55,7 @@ CLASS ycl_aaic_rest_resource IMPLEMENTATION.
 
   ENDMETHOD.
 
+
   METHOD yif_aaic_rest_resource~delete.
 
     me->_method_not_allowed(
@@ -60,6 +64,7 @@ CLASS ycl_aaic_rest_resource IMPLEMENTATION.
     ).
 
   ENDMETHOD.
+
 
   METHOD _method_not_allowed.
 
@@ -75,5 +80,4 @@ CLASS ycl_aaic_rest_resource IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-
 ENDCLASS.

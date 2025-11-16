@@ -28,7 +28,8 @@ ENDCLASS.
 
 
 
-CLASS ycl_aaic_rest_handler IMPLEMENTATION.
+CLASS YCL_AAIC_REST_HANDLER IMPLEMENTATION.
+
 
   METHOD if_http_service_extension~handle_request.
 
@@ -164,6 +165,7 @@ CLASS ycl_aaic_rest_handler IMPLEMENTATION.
 
   ENDMETHOD.
 
+
   METHOD get_rest_resource_instance.
 
     CLEAR: e_o_resource,
@@ -200,5 +202,4 @@ CLASS ycl_aaic_rest_handler IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-
 ENDCLASS.

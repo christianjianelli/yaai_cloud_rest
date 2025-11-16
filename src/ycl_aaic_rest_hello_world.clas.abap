@@ -15,7 +15,8 @@ ENDCLASS.
 
 
 
-CLASS ycl_aaic_rest_hello_world IMPLEMENTATION.
+CLASS YCL_AAIC_REST_HELLO_WORLD IMPLEMENTATION.
+
 
   METHOD read.
 
@@ -33,5 +34,4 @@ CLASS ycl_aaic_rest_hello_world IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-
 ENDCLASS.
