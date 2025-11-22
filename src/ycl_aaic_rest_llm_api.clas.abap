@@ -5,24 +5,6 @@ CLASS ycl_aaic_rest_llm_api DEFINITION INHERITING FROM ycl_aaic_rest_resource
 
   PUBLIC SECTION.
 
-    METHODS read REDEFINITION.
-
-  PROTECTED SECTION.
-
-  PRIVATE SECTION.
-
-ENDCLASS.
-
-
-
-CLASS ycl_aaic_rest_llm_api IMPLEMENTATION.
-
-
-  METHOD read.
-
-    DATA lt_models TYPE SORTED TABLE OF yaaic_model
-       WITH UNIQUE KEY id.
-
     TYPES: BEGIN OF ty_model_s,
              model         TYPE string,
              default_model TYPE abap_bool,
@@ -41,8 +23,31 @@ CLASS ycl_aaic_rest_llm_api IMPLEMENTATION.
            BEGIN OF ty_response_s,
              apis  TYPE ty_api_t,
              error TYPE string,
-           END OF ty_response_s.
+           END OF ty_response_s,
 
+           BEGIN OF ty_response_update_s,
+             updated TYPE abap_bool,
+             error   TYPE string,
+           END OF ty_response_update_s.
+
+    METHODS read REDEFINITION.
+
+    METHODS update REDEFINITION.
+
+  PROTECTED SECTION.
+
+  PRIVATE SECTION.
+
+ENDCLASS.
+
+
+
+CLASS ycl_aaic_rest_llm_api IMPLEMENTATION.
+
+  METHOD read.
+
+    DATA lt_models TYPE SORTED TABLE OF yaaic_model
+       WITH UNIQUE KEY id model.
 
     DATA: ls_api      TYPE ty_api_s,
           ls_response TYPE ty_response_s.
@@ -98,17 +103,8 @@ CLASS ycl_aaic_rest_llm_api IMPLEMENTATION.
     l_json = /ui2/cl_json=>serialize(
      EXPORTING
        data = ls_response
-       compress         = abap_false
-*       name             =
-       pretty_name      = /ui2/cl_json=>pretty_mode-camel_case
-*       type_descr       =
-*       assoc_arrays     =
-*       ts_as_iso8601    =
-*       expand_includes  =
-*       assoc_arrays_opt =
-*       numc_as_string   =
-*       name_mappings    =
-*       conversion_exits =
+       compress = abap_false
+       pretty_name = /ui2/cl_json=>pretty_mode-camel_case
     ).
 
     TRY.
@@ -138,4 +134,67 @@ CLASS ycl_aaic_rest_llm_api IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+
+  METHOD update.
+
+    DATA: ls_request  TYPE ty_api_s,
+          ls_response TYPE ty_response_update_s.
+
+    DATA(l_json) = i_o_request->get_text( ).
+
+    /ui2/cl_json=>deserialize(
+      EXPORTING
+        json = l_json
+        pretty_name = /ui2/cl_json=>pretty_mode-camel_case
+      CHANGING
+        data = ls_request
+    ).
+
+    ls_response-updated = abap_false.
+
+    UPDATE yaaic_api
+      SET base_url = @ls_request-base_url
+      WHERE id = @ls_request-id.
+
+    IF sy-subrc = 0.
+      ls_response-updated = abap_true.
+    ELSE.
+      "TODO: handle error
+    ENDIF.
+
+    DELETE FROM yaaic_model
+      WHERE id = @ls_request-id.
+
+    LOOP AT ls_request-models ASSIGNING FIELD-SYMBOL(<ls_model>).
+
+      INSERT yaaic_model FROM @( VALUE yaaic_model( id = ls_request-id
+                                                    model = <ls_model>-model
+                                                    default_model = <ls_model>-default_model ) ).
+
+    ENDLOOP.
+
+    l_json = /ui2/cl_json=>serialize(
+      EXPORTING
+        data = ls_response
+        compress = abap_false
+        pretty_name = /ui2/cl_json=>pretty_mode-camel_case
+    ).
+
+    TRY.
+
+        i_o_response->set_content_type( content_type = 'application/json' ).
+
+        i_o_response->set_text(
+          EXPORTING
+            i_text = l_json
+        ).
+
+      CATCH cx_web_message_error ##NO_HANDLER.
+
+        "TODO: log
+
+    ENDTRY.
+
+  ENDMETHOD.
+
 ENDCLASS.
