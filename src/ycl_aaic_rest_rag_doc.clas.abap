@@ -9,10 +9,33 @@ CLASS ycl_aaic_rest_rag_doc DEFINITION INHERITING FROM ycl_aaic_rest_resource
              created TYPE abap_bool,
              id      TYPE string,
              error   TYPE string,
-           END OF ty_response_create_s.
+           END OF ty_response_create_s,
+
+           BEGIN OF ty_read_response_s,
+             document TYPE yif_aaic_rag_db=>ty_document_s,
+             error    TYPE string,
+           END OF ty_read_response_s,
+
+           BEGIN OF ty_query_response_s,
+             documents TYPE yif_aaic_rag_db=>ty_documents_t,
+           END OF ty_query_response_s,
+
+           BEGIN OF ty_response_update_s,
+             updated TYPE abap_bool,
+             id      TYPE string,
+             error   TYPE string,
+           END OF ty_response_update_s,
+
+           BEGIN OF ty_response_delete_s,
+             deleted TYPE abap_bool,
+             id      TYPE string,
+             error   TYPE string,
+           END OF ty_response_delete_s.
 
     METHODS create REDEFINITION.
     METHODS read REDEFINITION.
+    METHODS update REDEFINITION.
+    METHODS delete REDEFINITION.
 
   PROTECTED SECTION.
 
@@ -88,13 +111,132 @@ CLASS ycl_aaic_rest_rag_doc IMPLEMENTATION.
 
   METHOD read.
 
+    DATA: ls_query_response TYPE ty_query_response_s,
+          ls_read_response  TYPE ty_read_response_s.
+
+    DATA l_json TYPE string.
+
+    DATA(l_id) = i_o_request->get_form_field( i_name = 'id' ).
+    DATA(l_filename) = i_o_request->get_form_field( i_name = 'filename' ).
+    DATA(l_description) = i_o_request->get_form_field( i_name = 'description' ).
+    DATA(l_keywords) = i_o_request->get_form_field( i_name = 'keywords' ).
+
+    IF l_id IS INITIAL.
+
+      NEW ycl_aaic_rag_db( )->query(
+        EXPORTING
+          i_filename    = l_filename
+          i_description = l_description
+          i_keywords    = l_keywords
+        IMPORTING
+          e_t_documents = DATA(lt_documents)
+      ).
+
+      ls_query_response-documents = lt_documents.
+
+      l_json = /ui2/cl_json=>serialize(
+        EXPORTING
+          data = ls_query_response
+          compress = abap_false
+          pretty_name = /ui2/cl_json=>pretty_mode-camel_case
+      ).
+
+      TRY.
+
+          i_o_response->set_content_type( content_type = 'application/json' ).
+
+          i_o_response->set_text(
+            EXPORTING
+              i_text = l_json
+          ).
+
+        CATCH cx_web_message_error ##NO_HANDLER.
+
+      ENDTRY.
+
+      RETURN.
+
+    ENDIF.
+
+    NEW ycl_aaic_rag_db( )->read(
+      EXPORTING
+        i_id          = CONV #( l_id )
+      IMPORTING
+        e_filename    = l_filename
+        e_description = l_description
+        e_keywords    = l_keywords
+        e_content     = DATA(l_content)
+        e_error       = DATA(l_error)
+    ).
+
+    ls_read_response-document = VALUE #( id = l_id
+                                         filename = l_filename
+                                         description = l_description
+                                         keywords = l_keywords
+                                         content = l_content ).
+
+    l_json = /ui2/cl_json=>serialize(
+      EXPORTING
+        data = ls_read_response
+        compress = abap_false
+        pretty_name = /ui2/cl_json=>pretty_mode-camel_case
+    ).
+
     TRY.
 
-        i_o_response->set_content_type( content_type = 'text/plain' ).
+        i_o_response->set_content_type( content_type = 'application/json' ).
 
         i_o_response->set_text(
           EXPORTING
-            i_text = |TODO|
+            i_text = l_json
+        ).
+
+      CATCH cx_web_message_error ##NO_HANDLER.
+
+    ENDTRY.
+
+  ENDMETHOD.
+
+  METHOD update.
+
+  ENDMETHOD.
+
+  METHOD delete.
+
+    DATA ls_response TYPE ty_response_delete_s.
+
+    DATA l_json TYPE string.
+
+    DATA(l_id) = i_o_request->get_form_field( i_name = 'id' ).
+
+    IF l_id IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    ls_response-id = l_id.
+
+    NEW ycl_aaic_rag_db( )->delete(
+      EXPORTING
+        i_id       = CONV #( l_id )
+      IMPORTING
+        e_deleted  = ls_response-deleted
+        e_error    = ls_response-error
+    ).
+
+    l_json = /ui2/cl_json=>serialize(
+      EXPORTING
+        data = ls_response
+        compress = abap_false
+        pretty_name = /ui2/cl_json=>pretty_mode-camel_case
+    ).
+
+    TRY.
+
+        i_o_response->set_content_type( content_type = 'application/json' ).
+
+        i_o_response->set_text(
+          EXPORTING
+            i_text = l_json
         ).
 
       CATCH cx_web_message_error ##NO_HANDLER.
