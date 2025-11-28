@@ -5,7 +5,44 @@ CLASS ycl_aaic_rest_chat DEFINITION INHERITING FROM ycl_aaic_rest_resource
 
   PUBLIC SECTION.
 
+    TYPES: BEGIN OF ty_msg_s,
+             seqno    TYPE yde_aaic_seqno,
+             msg      TYPE yde_aaic_chat_msg,
+             msg_date TYPE yde_aaic_msg_date,
+             msg_time TYPE yde_aaic_msg_time,
+           END OF ty_msg_s,
+
+           ty_msg_t TYPE STANDARD TABLE OF ty_msg_s WITH EMPTY KEY,
+
+           BEGIN OF ty_chat_query_s,
+             id        TYPE string,
+             api       TYPE yde_aaic_api,
+             username  TYPE usnam,
+             chat_date TYPE yde_aaic_chat_date,
+             chat_time TYPE yde_aaic_chat_time,
+           END OF ty_chat_query_s,
+
+           ty_chat_t TYPE STANDARD TABLE OF ty_chat_query_s WITH EMPTY KEY,
+
+           BEGIN OF ty_chat_s,
+             id        TYPE string,
+             api       TYPE yde_aaic_api,
+             username  TYPE usnam,
+             chat_date TYPE yde_aaic_chat_date,
+             chat_time TYPE yde_aaic_chat_time,
+             messages  TYPE ty_msg_t,
+           END OF ty_chat_s,
+
+           BEGIN OF ty_response_read_s,
+             chat TYPE ty_chat_s,
+           END OF ty_response_read_s,
+
+           BEGIN OF ty_response_query_s,
+             chats TYPE ty_chat_t,
+           END OF ty_response_query_s.
+
     METHODS create REDEFINITION.
+
     METHODS read REDEFINITION.
 
   PROTECTED SECTION.
@@ -37,13 +74,100 @@ CLASS ycl_aaic_rest_chat IMPLEMENTATION.
 
   METHOD read.
 
+    DATA: lt_rng_username  TYPE RANGE OF yaaic_log-username,
+          lt_rng_chat_date TYPE RANGE OF yaaic_log-log_date.
+
+    DATA: ls_response_query TYPE ty_response_query_s,
+          ls_response_read  TYPE ty_response_read_s.
+
+    DATA: l_chat_date_from TYPE yaaic_log-log_date,
+          l_chat_date_to   TYPE yaaic_log-log_date,
+          l_json           TYPE string.
+
+    DATA(l_chat_id) = to_upper( i_o_request->get_form_field( i_name = 'chat_id' ) ).
+
+    IF l_chat_id IS NOT INITIAL. " Read
+
+      SELECT SINGLE id ,api ,username ,chat_date ,chat_time
+        FROM yaaic_chat
+        WHERE id = @l_chat_id
+        INTO @DATA(ls_chat).
+
+      IF sy-subrc <> 0.
+
+        TRY.
+
+            "Not Found
+            i_o_response->set_status(
+              EXPORTING
+                i_code = 404
+            ).
+
+          CATCH cx_web_message_error ##NO_HANDLER.
+        ENDTRY.
+
+      ENDIF.
+
+      ls_response_read-chat = CORRESPONDING #( ls_chat ).
+
+      SELECT id , seqno, msg, msg_date, msg_time
+        FROM yaaic_msg
+        WHERE id = @l_chat_id
+        INTO TABLE @DATA(lt_msg).
+
+      IF sy-subrc = 0.
+        ls_response_read-chat-messages = CORRESPONDING #( lt_msg ).
+      ENDIF.
+
+      l_json = /ui2/cl_json=>serialize(
+        EXPORTING
+          data = ls_response_read
+          compress = abap_false
+          pretty_name = /ui2/cl_json=>pretty_mode-camel_case
+      ).
+
+    ELSE. " Query
+
+      DATA(l_datefrom) = i_o_request->get_form_field( i_name = 'datefrom' ).
+      DATA(l_dateto) = i_o_request->get_form_field( i_name = 'dateto' ).
+      DATA(l_username) = to_upper( i_o_request->get_form_field( i_name = 'username' ) ).
+
+      IF l_datefrom IS NOT INITIAL AND l_dateto IS NOT INITIAL.
+        lt_rng_chat_date = VALUE #( ( sign = 'I' option = 'BT' low = l_datefrom high = l_dateto ) ).
+      ELSEIF l_datefrom IS NOT INITIAL AND l_dateto IS INITIAL.
+        lt_rng_chat_date = VALUE #( ( sign = 'I' option = 'EQ' low = l_datefrom ) ).
+      ENDIF.
+
+      IF l_username IS NOT INITIAL.
+        lt_rng_username = VALUE #( ( sign = 'I' option = 'EQ' low = l_username ) ).
+      ENDIF.
+
+      SELECT id ,api ,username ,chat_date ,chat_time
+        FROM yaaic_chat
+        WHERE chat_date IN @lt_rng_chat_date
+        AND username IN @lt_rng_username
+        INTO TABLE @DATA(lt_chat).
+
+      IF sy-subrc = 0.
+        ls_response_query-chats = CORRESPONDING #( lt_chat ).
+      ENDIF.
+
+      l_json = /ui2/cl_json=>serialize(
+        EXPORTING
+          data = ls_response_query
+          compress = abap_false
+          pretty_name = /ui2/cl_json=>pretty_mode-camel_case
+      ).
+
+    ENDIF.
+
     TRY.
 
         i_o_response->set_content_type( content_type = 'application/json' ).
 
         i_o_response->set_text(
           EXPORTING
-            i_text = CONV #( '{"state":"finished"}' )
+            i_text = l_json
         ).
 
       CATCH cx_web_message_error ##NO_HANDLER.
