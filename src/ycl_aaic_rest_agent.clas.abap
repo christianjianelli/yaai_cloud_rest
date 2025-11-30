@@ -32,10 +32,12 @@ CLASS ycl_aaic_rest_agent DEFINITION INHERITING FROM ycl_aaic_rest_resource
 
            BEGIN OF ty_response_read_s,
              agent TYPE ty_agent_s,
+             error TYPE string,
            END OF ty_response_read_s,
 
            BEGIN OF ty_response_query_s,
              agents TYPE ty_agent_t,
+             error  TYPE string,
            END OF ty_response_query_s,
 
            ty_request_create_s TYPE ty_agent_s,
@@ -148,17 +150,25 @@ CLASS ycl_aaic_rest_agent IMPLEMENTATION.
 
     IF l_agent_id IS NOT INITIAL. " Read
 
-      SELECT SINGLE a~id, a~name, a~description, a~sys_inst_id, b~filename AS filename_si, b~description AS file_si_descr,
-                    a~rag_ctx_id, b~filename AS filename_ctx, b~description AS file_ctx_descr, a~prompt_template
-        FROM yaaic_agent AS a
-        LEFT OUTER JOIN yaaic_rag AS b
-        ON a~sys_inst_id = b~id
-        LEFT OUTER JOIN yaaic_rag AS c
-        ON a~rag_ctx_id = c~id
-        WHERE a~id = @l_agent_id
-        INTO @DATA(ls_agent).
+      TRY.
 
-      IF sy-subrc <> 0.
+          SELECT SINGLE a~id, a~name, a~description, a~sys_inst_id, b~filename AS filename_si, b~description AS file_si_descr,
+                        a~rag_ctx_id, b~filename AS filename_ctx, b~description AS file_ctx_descr, a~prompt_template
+            FROM yaaic_agent AS a
+            LEFT OUTER JOIN yaaic_rag AS b
+            ON a~sys_inst_id = b~id
+            LEFT OUTER JOIN yaaic_rag AS c
+            ON a~rag_ctx_id = c~id
+            WHERE a~id = @l_agent_id
+            INTO @DATA(ls_agent).
+
+        CATCH cx_sy_open_sql_data_error INTO DATA(lo_ex_sy_open_sql_data_error).
+
+          ls_response_read-error = lo_ex_sy_open_sql_data_error->get_text( ).
+
+      ENDTRY.
+
+      IF ls_agent IS INITIAL.
 
         TRY.
 
@@ -200,13 +210,26 @@ CLASS ycl_aaic_rest_agent IMPLEMENTATION.
         lt_rng_agent_descr = VALUE #( ( sign = 'I' option = 'CP' low = |*{ l_agent_description }*| ) ).
       ENDIF.
 
-      SELECT id, name, description, sys_inst_id, rag_ctx_id, prompt_template
-        FROM yaaic_agent
-        WHERE name IN @lt_rng_agent_name
-          AND description IN @lt_rng_agent_descr
-        INTO TABLE @DATA(lt_agent).
+      TRY.
 
-      IF sy-subrc = 0.
+          SELECT a~id, a~name, a~description, a~sys_inst_id, b~filename AS filename_si, b~description AS file_si_descr,
+                 a~rag_ctx_id, b~filename AS filename_ctx, b~description AS file_ctx_descr, a~prompt_template
+            FROM yaaic_agent AS a
+            LEFT OUTER JOIN yaaic_rag AS b
+            ON a~sys_inst_id = b~id
+            LEFT OUTER JOIN yaaic_rag AS c
+            ON a~rag_ctx_id = c~id
+            WHERE a~name IN @lt_rng_agent_name
+              AND a~description IN @lt_rng_agent_descr
+            INTO TABLE @DATA(lt_agent).
+
+        CATCH cx_sy_open_sql_data_error INTO lo_ex_sy_open_sql_data_error.
+
+          ls_response_query-error = lo_ex_sy_open_sql_data_error->get_text( ).
+
+      ENDTRY.
+
+      IF lt_agent IS NOT INITIAL.
         ls_response_query-agents = CORRESPONDING #( lt_agent ).
       ENDIF.
 
@@ -235,6 +258,82 @@ CLASS ycl_aaic_rest_agent IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD update.
+
+    DATA: ls_request  TYPE ty_request_update_s,
+          ls_response TYPE ty_response_update_s.
+
+    DATA: l_json TYPE string,
+          l_id   TYPE yaaic_agent-id.
+
+    TRY.
+
+        DATA(l_body) = i_o_request->get_text( ).
+
+        /ui2/cl_json=>deserialize(
+          EXPORTING
+            json        = l_body
+            pretty_name = /ui2/cl_json=>pretty_mode-camel_case
+          CHANGING
+            data        = ls_request
+        ).
+
+        DATA(lo_rag) = NEW ycl_aaic_rag_db( ).
+
+        IF ls_request-filename_si IS NOT INITIAL.
+
+          lo_rag->read(
+            EXPORTING
+              i_filename    = ls_request-filename_si
+            IMPORTING
+              e_id          = DATA(l_sys_inst_id)
+          ).
+
+          ls_request-sys_inst_id = l_sys_inst_id.
+
+        ENDIF.
+
+        IF ls_request-filename_ctx IS NOT INITIAL.
+
+          lo_rag->read(
+            EXPORTING
+              i_filename    = ls_request-filename_ctx
+            IMPORTING
+              e_id          = DATA(l_rag_ctx_id)
+          ).
+
+          ls_request-rag_ctx_id = l_rag_ctx_id.
+
+        ENDIF.
+
+        DATA(lo_agent) = NEW ycl_aaic_agent_db( ).
+
+        lo_agent->update(
+          EXPORTING
+            i_s_agent       = CORRESPONDING #( ls_request )
+            i_t_agent_tools = CORRESPONDING #( ls_request-tools )
+          IMPORTING
+            e_updated       = ls_response-updated
+            e_error         = ls_response-error
+        ).
+
+        ls_response-id = l_id.
+
+        l_json = /ui2/cl_json=>serialize(
+          EXPORTING
+            data = ls_response
+            compress = abap_false
+            pretty_name = /ui2/cl_json=>pretty_mode-camel_case
+        ).
+
+        i_o_response->set_content_type( content_type = 'application/json' ).
+
+        i_o_response->set_text(
+          EXPORTING
+            i_text = l_json
+        ).
+
+      CATCH cx_web_message_error ##NO_HANDLER.
+    ENDTRY.
 
   ENDMETHOD.
 
