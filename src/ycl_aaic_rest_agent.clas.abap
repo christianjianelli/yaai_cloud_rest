@@ -5,7 +5,16 @@ CLASS ycl_aaic_rest_agent DEFINITION INHERITING FROM ycl_aaic_rest_resource
 
   PUBLIC SECTION.
 
-    TYPES: BEGIN OF ty_agent_s,
+    TYPES: BEGIN OF ty_tool_s,
+             class_name  TYPE string,
+             method_name TYPE string,
+             proxy_class TYPE string,
+             description TYPE string,
+           END OF ty_tool_s,
+
+           ty_tool_t TYPE STANDARD TABLE OF ty_tool_s WITH EMPTY KEY,
+
+           BEGIN OF ty_agent_s,
              id              TYPE string,
              name            TYPE yde_aaic_agent_name,
              description     TYPE yde_aaic_description,
@@ -16,6 +25,7 @@ CLASS ycl_aaic_rest_agent DEFINITION INHERITING FROM ycl_aaic_rest_resource
              filename_ctx    TYPE yde_aaic_filename,
              file_ctx_descr  TYPE yde_aaic_description,
              prompt_template TYPE yde_aaic_prompt_template,
+             tools           TYPE ty_tool_t,
            END OF ty_agent_s,
 
            ty_agent_t TYPE STANDARD TABLE OF ty_agent_s WITH EMPTY KEY,
@@ -80,6 +90,11 @@ CLASS ycl_aaic_rest_agent IMPLEMENTATION.
       ENDIF.
 
       ls_response_read-agent = CORRESPONDING #( ls_agent ).
+
+      SELECT class_name, method_name, proxy_class, description
+        FROM yaaic_agent_tool
+        WHERE id = @l_agent_id
+        INTO TABLE @ls_response_read-agent-tools.
 
       l_json = /ui2/cl_json=>serialize(
         EXPORTING
