@@ -36,9 +36,37 @@ CLASS ycl_aaic_rest_agent DEFINITION INHERITING FROM ycl_aaic_rest_resource
 
            BEGIN OF ty_response_query_s,
              agents TYPE ty_agent_t,
-           END OF ty_response_query_s.
+           END OF ty_response_query_s,
+
+           ty_request_create_s TYPE ty_agent_s,
+
+           BEGIN OF ty_response_create_s,
+             created TYPE abap_bool,
+             id      TYPE string,
+             error   TYPE string,
+           END OF ty_response_create_s,
+
+           ty_request_update_s TYPE ty_agent_s,
+
+           BEGIN OF ty_response_update_s,
+             updated TYPE abap_bool,
+             id      TYPE string,
+             error   TYPE string,
+           END OF ty_response_update_s,
+
+           BEGIN OF ty_response_delete_s,
+             deleted TYPE abap_bool,
+             id      TYPE string,
+             error   TYPE string,
+           END OF ty_response_delete_s.
+
+    METHODS create REDEFINITION.
 
     METHODS read REDEFINITION.
+
+    METHODS update REDEFINITION.
+
+    METHODS delete REDEFINITION.
 
   PROTECTED SECTION.
 
@@ -49,6 +77,62 @@ ENDCLASS.
 
 
 CLASS ycl_aaic_rest_agent IMPLEMENTATION.
+
+  METHOD create.
+
+    DATA: ls_request  TYPE ty_request_create_s,
+          ls_response TYPE ty_response_create_s.
+
+    DATA: l_json TYPE string,
+          l_id   TYPE yaaic_agent-id.
+
+    TRY.
+
+        DATA(l_body) = i_o_request->get_text( ).
+
+        /ui2/cl_json=>deserialize(
+          EXPORTING
+            json        = l_body
+            pretty_name = /ui2/cl_json=>pretty_mode-camel_case
+          CHANGING
+            data        = ls_request
+        ).
+
+        DATA(lo_agent) = NEW ycl_aaic_agent_db( ).
+
+        lo_agent->create(
+          EXPORTING
+            i_s_agent       = CORRESPONDING #( ls_request )
+            i_t_agent_tools = CORRESPONDING #( ls_request-tools )
+          IMPORTING
+            e_id            = l_id
+            e_error         = ls_response-error
+        ).
+
+        ls_response-id = l_id.
+
+        IF ls_response-id IS NOT INITIAL AND NOT ls_response-id CO '0 '.
+          ls_response-created = abap_true.
+        ENDIF.
+
+        l_json = /ui2/cl_json=>serialize(
+          EXPORTING
+            data = ls_response
+            compress = abap_false
+            pretty_name = /ui2/cl_json=>pretty_mode-camel_case
+        ).
+
+        i_o_response->set_content_type( content_type = 'application/json' ).
+
+        i_o_response->set_text(
+          EXPORTING
+            i_text = l_json
+        ).
+
+      CATCH cx_web_message_error ##NO_HANDLER.
+    ENDTRY.
+
+  ENDMETHOD.
 
   METHOD read.
 
@@ -64,8 +148,8 @@ CLASS ycl_aaic_rest_agent IMPLEMENTATION.
 
     IF l_agent_id IS NOT INITIAL. " Read
 
-      SELECT SINGLE a~id, a~name, a~description, a~sys_inst_id, b~filename as filename_si, b~description as file_si_descr,
-                    a~rag_ctx_id, b~filename as filename_ctx, b~description as file_ctx_descr, a~prompt_template
+      SELECT SINGLE a~id, a~name, a~description, a~sys_inst_id, b~filename AS filename_si, b~description AS file_si_descr,
+                    a~rag_ctx_id, b~filename AS filename_ctx, b~description AS file_ctx_descr, a~prompt_template
         FROM yaaic_agent AS a
         LEFT OUTER JOIN yaaic_rag AS b
         ON a~sys_inst_id = b~id
@@ -150,4 +234,50 @@ CLASS ycl_aaic_rest_agent IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD update.
+
+  ENDMETHOD.
+
+  METHOD delete.
+
+    DATA ls_response_delete TYPE ty_response_delete_s.
+
+    DATA l_json TYPE string.
+
+    DATA(l_agent_id) = to_upper( i_o_request->get_form_field( i_name = 'id' ) ).
+
+    ls_response_delete-id = l_agent_id.
+
+    DATA(lo_agent) = NEW ycl_aaic_agent_db( ).
+
+    lo_agent->delete(
+      EXPORTING
+        i_agent_id = CONV #( ls_response_delete-id )
+      IMPORTING
+        e_deleted  = ls_response_delete-deleted
+        e_error    = ls_response_delete-error
+    ).
+
+
+    l_json = /ui2/cl_json=>serialize(
+      EXPORTING
+        data = ls_response_delete
+        compress = abap_false
+        pretty_name = /ui2/cl_json=>pretty_mode-camel_case
+    ).
+
+    TRY.
+
+        i_o_response->set_content_type( content_type = 'application/json' ).
+
+        i_o_response->set_text(
+          EXPORTING
+            i_text = l_json
+        ).
+
+      CATCH cx_web_message_error ##NO_HANDLER.
+
+    ENDTRY.
+
+  ENDMETHOD.
 ENDCLASS.
