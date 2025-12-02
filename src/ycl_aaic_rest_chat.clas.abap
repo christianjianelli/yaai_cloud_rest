@@ -20,6 +20,7 @@ CLASS ycl_aaic_rest_chat DEFINITION INHERITING FROM ycl_aaic_rest_resource
              username  TYPE usnam,
              chat_date TYPE yde_aaic_chat_date,
              chat_time TYPE yde_aaic_chat_time,
+             blocked   TYPE abap_bool,
            END OF ty_chat_query_s,
 
            ty_chat_t TYPE STANDARD TABLE OF ty_chat_query_s WITH EMPTY KEY,
@@ -30,6 +31,7 @@ CLASS ycl_aaic_rest_chat DEFINITION INHERITING FROM ycl_aaic_rest_resource
              username  TYPE usnam,
              chat_date TYPE yde_aaic_chat_date,
              chat_time TYPE yde_aaic_chat_time,
+             blocked   TYPE abap_bool,
              messages  TYPE ty_msg_t,
            END OF ty_chat_s,
 
@@ -100,13 +102,13 @@ CLASS ycl_aaic_rest_chat IMPLEMENTATION.
           l_chat_date_to   TYPE yaaic_log-log_date,
           l_json           TYPE string.
 
-    DATA(l_chat_id) = to_upper( i_o_request->get_form_field( i_name = 'chat_id' ) ).
+    DATA(l_id) = to_upper( i_o_request->get_form_field( i_name = 'id' ) ).
 
-    IF l_chat_id IS NOT INITIAL. " Read
+    IF l_id IS NOT INITIAL. " Read
 
-      SELECT SINGLE id ,api ,username ,chat_date ,chat_time
+      SELECT SINGLE id ,api ,username ,chat_date ,chat_time, blocked
         FROM yaaic_chat
-        WHERE id = @l_chat_id
+        WHERE id = @l_id
         INTO @DATA(ls_chat).
 
       IF sy-subrc <> 0.
@@ -128,7 +130,7 @@ CLASS ycl_aaic_rest_chat IMPLEMENTATION.
 
       SELECT id , seqno, msg, msg_date, msg_time
         FROM yaaic_msg
-        WHERE id = @l_chat_id
+        WHERE id = @l_id
         INTO TABLE @DATA(lt_msg).
 
       IF sy-subrc = 0.
@@ -158,7 +160,7 @@ CLASS ycl_aaic_rest_chat IMPLEMENTATION.
         lt_rng_username = VALUE #( ( sign = 'I' option = 'EQ' low = l_username ) ).
       ENDIF.
 
-      SELECT id ,api ,username ,chat_date ,chat_time
+      SELECT id ,api ,username ,chat_date ,chat_time, blocked
         FROM yaaic_chat
         WHERE chat_date IN @lt_rng_chat_date
         AND username IN @lt_rng_username
