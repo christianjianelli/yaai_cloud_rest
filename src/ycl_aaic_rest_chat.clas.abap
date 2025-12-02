@@ -39,11 +39,27 @@ CLASS ycl_aaic_rest_chat DEFINITION INHERITING FROM ycl_aaic_rest_resource
 
            BEGIN OF ty_response_query_s,
              chats TYPE ty_chat_t,
-           END OF ty_response_query_s.
+           END OF ty_response_query_s,
+
+           BEGIN OF ty_chat_update_s,
+             id      TYPE string,
+             updated TYPE abap_bool,
+             error   TYPE string,
+           END OF ty_chat_update_s,
+
+           BEGIN OF ty_chat_delete_s,
+             id      TYPE string,
+             deleted TYPE abap_bool,
+             error   TYPE string,
+           END OF ty_chat_delete_s.
 
     METHODS create REDEFINITION.
 
     METHODS read REDEFINITION.
+
+    METHODS update REDEFINITION.
+
+    METHODS delete REDEFINITION.
 
   PROTECTED SECTION.
 
@@ -160,6 +176,145 @@ CLASS ycl_aaic_rest_chat IMPLEMENTATION.
       ).
 
     ENDIF.
+
+    TRY.
+
+        i_o_response->set_content_type( content_type = 'application/json' ).
+
+        i_o_response->set_text(
+          EXPORTING
+            i_text = l_json
+        ).
+
+      CATCH cx_web_message_error ##NO_HANDLER.
+
+    ENDTRY.
+
+  ENDMETHOD.
+
+  METHOD update.
+
+    DATA ls_response_update TYPE ty_chat_update_s.
+
+    DATA l_json TYPE string.
+
+    ls_response_update-id = to_upper( i_o_request->get_form_field( i_name = 'chat_id' ) ).
+    DATA(l_action) = to_upper( i_o_request->get_form_field( i_name = 'action' ) ).
+
+    IF ls_response_update-id IS INITIAL.
+
+      TRY.
+
+          "Not Found
+          i_o_response->set_status(
+            EXPORTING
+              i_code = 404
+          ).
+
+        CATCH cx_web_message_error ##NO_HANDLER.
+      ENDTRY.
+
+      RETURN.
+
+    ENDIF.
+
+    CASE l_action.
+
+      WHEN 'BLOCK'.
+
+        NEW ycl_aaic_db(
+          i_api     = space
+          i_id      = CONV #( ls_response_update-id )
+        )->block_chat(
+          IMPORTING
+            e_blocked = ls_response_update-updated
+        ).
+
+        IF ls_response_update-updated = abap_false.
+          ls_response_update-error = 'Error while trying to block the chat.'.
+        ENDIF.
+
+      WHEN 'RELEASE'.
+
+        NEW ycl_aaic_db(
+          i_api     = space
+          i_id      = CONV #( ls_response_update-id )
+        )->release_chat(
+          IMPORTING
+            e_released = ls_response_update-updated
+        ).
+
+        IF ls_response_update-updated = abap_false.
+          ls_response_update-error = 'Error while trying to release the chat.'.
+        ENDIF.
+
+    ENDCASE.
+
+    l_json = /ui2/cl_json=>serialize(
+      EXPORTING
+        data = ls_response_update
+        compress = abap_false
+        pretty_name = /ui2/cl_json=>pretty_mode-camel_case
+    ).
+
+    TRY.
+
+        i_o_response->set_content_type( content_type = 'application/json' ).
+
+        i_o_response->set_text(
+          EXPORTING
+            i_text = l_json
+        ).
+
+      CATCH cx_web_message_error ##NO_HANDLER.
+
+    ENDTRY.
+
+  ENDMETHOD.
+
+  METHOD delete.
+
+    DATA ls_response_delete TYPE ty_chat_delete_s.
+
+    DATA l_json TYPE string.
+
+    ls_response_delete-id = to_upper( i_o_request->get_form_field( i_name = 'chat_id' ) ).
+
+    IF ls_response_delete-id IS INITIAL.
+
+      TRY.
+
+          "Not Found
+          i_o_response->set_status(
+            EXPORTING
+              i_code = 404
+          ).
+
+        CATCH cx_web_message_error ##NO_HANDLER.
+      ENDTRY.
+
+      RETURN.
+
+    ENDIF.
+
+    NEW ycl_aaic_db(
+      i_api     = space
+      i_id      = CONV #( ls_response_delete-id )
+    )->delete_chat(
+      IMPORTING
+        e_deleted = ls_response_delete-deleted
+    ).
+
+    IF ls_response_delete-deleted = abap_false.
+      ls_response_delete-error = 'Error while trying to delete the chat.'.
+    ENDIF.
+
+    l_json = /ui2/cl_json=>serialize(
+      EXPORTING
+        data = ls_response_delete
+        compress = abap_false
+        pretty_name = /ui2/cl_json=>pretty_mode-camel_case
+    ).
 
     TRY.
 
