@@ -7,11 +7,12 @@ CLASS ycl_aaic_rest_handler DEFINITION
 
     INTERFACES if_http_service_extension.
 
-    CONSTANTS: mc_interface_name TYPE c LENGTH 30 VALUE 'YCL_AAIC_REST_RESOURCE' ##NO_TEXT,
-               mc_create         TYPE string VALUE 'CREATE',
-               mc_read           TYPE string VALUE 'READ',
-               mc_update         TYPE string VALUE 'UPDATE',
-               mc_delete         TYPE string VALUE 'DELETE'.
+    CONSTANTS: mc_interface_name       TYPE c LENGTH 30 VALUE 'YCL_AAIC_REST_RESOURCE' ##NO_TEXT,
+               mc_rest_resource_prefix TYPE c LENGTH 30 VALUE 'YCL_AAIC_REST' ##NO_TEXT,
+               mc_create               TYPE string VALUE 'CREATE' ##NO_TEXT,
+               mc_read                 TYPE string VALUE 'READ' ##NO_TEXT,
+               mc_update               TYPE string VALUE 'UPDATE' ##NO_TEXT,
+               mc_delete               TYPE string VALUE 'DELETE' ##NO_TEXT.
 
     METHODS get_rest_resource_instance
       IMPORTING
@@ -28,7 +29,7 @@ ENDCLASS.
 
 
 
-CLASS YCL_AAIC_REST_HANDLER IMPLEMENTATION.
+CLASS ycl_aaic_rest_handler IMPLEMENTATION.
 
 
   METHOD if_http_service_extension~handle_request.
@@ -177,7 +178,7 @@ CLASS YCL_AAIC_REST_HANDLER IMPLEMENTATION.
 
     LOOP AT lt_subclasses INTO DATA(l_subclass).
 
-      IF l_subclass CP to_upper( |*{ i_resource }*| ).
+      IF l_subclass = |{ mc_rest_resource_prefix }_{ to_upper( i_resource ) }|.
 
         TRY.
 
