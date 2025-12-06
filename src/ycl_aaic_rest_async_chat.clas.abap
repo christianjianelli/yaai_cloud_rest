@@ -75,9 +75,10 @@ CLASS ycl_aaic_rest_async_chat IMPLEMENTATION.
 
       WHEN 'OPENAI'.
 
-        IF ls_request-chat_id IS INITIAL.
+        lo_aaic_db = NEW ycl_aaic_db( i_api = yif_aaic_const=>c_openai
+                                      i_id = CONV #( ls_request-chat_id ) ).
 
-          lo_aaic_db = NEW ycl_aaic_db( i_api = yif_aaic_const=>c_openai ).
+        IF ls_request-chat_id IS INITIAL.
 
           ls_request-chat_id = lo_aaic_db->m_id.
 
