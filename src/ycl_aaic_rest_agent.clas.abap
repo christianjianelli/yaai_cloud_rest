@@ -12,7 +12,18 @@ CLASS ycl_aaic_rest_agent DEFINITION INHERITING FROM ycl_aaic_rest_resource
              description TYPE string,
            END OF ty_tool_s,
 
-           ty_tool_t TYPE STANDARD TABLE OF ty_tool_s WITH EMPTY KEY,
+           BEGIN OF ty_model_s,
+             api            TYPE string,
+             model          TYPE yde_aaic_model,
+             temperature    TYPE yde_aaic_temperature,
+             verbosity      TYPE yde_aaic_verbosity,
+             reasoning      TYPE yde_aaic_reasoning_effort,
+             max_tool_calls TYPE yde_aaic_max_tool_calls,
+           END OF ty_model_s,
+
+           ty_tool_t  TYPE STANDARD TABLE OF ty_tool_s WITH EMPTY KEY,
+
+           ty_model_t TYPE STANDARD TABLE OF ty_model_s WITH EMPTY KEY,
 
            BEGIN OF ty_agent_s,
              id              TYPE string,
@@ -26,6 +37,7 @@ CLASS ycl_aaic_rest_agent DEFINITION INHERITING FROM ycl_aaic_rest_resource
              file_ctx_descr  TYPE yde_aaic_description,
              prompt_template TYPE yde_aaic_prompt_template,
              tools           TYPE ty_tool_t,
+             models          TYPE ty_model_t,
            END OF ty_agent_s,
 
            ty_agent_t TYPE STANDARD TABLE OF ty_agent_s WITH EMPTY KEY,
@@ -104,11 +116,12 @@ CLASS ycl_aaic_rest_agent IMPLEMENTATION.
 
         lo_agent->create(
           EXPORTING
-            i_s_agent       = CORRESPONDING #( ls_request )
-            i_t_agent_tools = CORRESPONDING #( ls_request-tools )
+            i_s_agent        = CORRESPONDING #( ls_request )
+            i_t_agent_tools  = CORRESPONDING #( ls_request-tools )
+            i_t_agent_models = CORRESPONDING #( ls_request-models )
           IMPORTING
-            e_id            = l_id
-            e_error         = ls_response-error
+            e_id             = l_id
+            e_error          = ls_response-error
         ).
 
         ls_response-id = l_id.
@@ -188,7 +201,12 @@ CLASS ycl_aaic_rest_agent IMPLEMENTATION.
       SELECT class_name, method_name, proxy_class, description
         FROM yaaic_agent_tool
         WHERE id = @l_agent_id
-        INTO TABLE @ls_response_read-agent-tools.
+        INTO CORRESPONDING FIELDS OF TABLE @ls_response_read-agent-tools.
+
+      SELECT api, model, temperature, verbosity, reasoning, max_tool_calls
+        FROM yaaic_agent_mdl
+        WHERE id = @l_agent_id
+        INTO CORRESPONDING FIELDS OF TABLE @ls_response_read-agent-models.
 
       l_json = /ui2/cl_json=>serialize(
         EXPORTING
@@ -309,11 +327,12 @@ CLASS ycl_aaic_rest_agent IMPLEMENTATION.
 
         lo_agent->update(
           EXPORTING
-            i_s_agent       = CORRESPONDING #( ls_request )
-            i_t_agent_tools = CORRESPONDING #( ls_request-tools )
+            i_s_agent        = CORRESPONDING #( ls_request )
+            i_t_agent_tools  = CORRESPONDING #( ls_request-tools )
+            i_t_agent_models = CORRESPONDING #( ls_request-models )
           IMPORTING
-            e_updated       = ls_response-updated
-            e_error         = ls_response-error
+            e_updated        = ls_response-updated
+            e_error          = ls_response-error
         ).
 
         ls_response-id = l_id.

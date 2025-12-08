@@ -15,24 +15,26 @@ CLASS ycl_aaic_rest_chat DEFINITION INHERITING FROM ycl_aaic_rest_resource
            ty_msg_t TYPE STANDARD TABLE OF ty_msg_s WITH EMPTY KEY,
 
            BEGIN OF ty_chat_query_s,
-             id        TYPE string,
-             api       TYPE yde_aaic_api,
-             username  TYPE usnam,
-             chat_date TYPE yde_aaic_chat_date,
-             chat_time TYPE yde_aaic_chat_time,
-             blocked   TYPE abap_bool,
+             id         TYPE string,
+             api        TYPE yde_aaic_api,
+             username   TYPE usnam,
+             chat_date  TYPE yde_aaic_chat_date,
+             chat_time  TYPE yde_aaic_chat_time,
+             max_seq_no TYPE i,
+             blocked    TYPE abap_bool,
            END OF ty_chat_query_s,
 
            ty_chat_t TYPE STANDARD TABLE OF ty_chat_query_s WITH EMPTY KEY,
 
            BEGIN OF ty_chat_s,
-             id        TYPE string,
-             api       TYPE yde_aaic_api,
-             username  TYPE usnam,
-             chat_date TYPE yde_aaic_chat_date,
-             chat_time TYPE yde_aaic_chat_time,
-             blocked   TYPE abap_bool,
-             messages  TYPE ty_msg_t,
+             id         TYPE string,
+             api        TYPE yde_aaic_api,
+             username   TYPE usnam,
+             chat_date  TYPE yde_aaic_chat_date,
+             chat_time  TYPE yde_aaic_chat_time,
+             max_seq_no TYPE i,
+             blocked    TYPE abap_bool,
+             messages   TYPE ty_msg_t,
            END OF ty_chat_s,
 
            BEGIN OF ty_response_read_s,
@@ -131,11 +133,16 @@ CLASS ycl_aaic_rest_chat IMPLEMENTATION.
       SELECT id , seqno, msg, msg_date, msg_time
         FROM yaaic_msg
         WHERE id = @l_id
+        ORDER BY id, seqno
         INTO TABLE @DATA(lt_msg).
 
       IF sy-subrc = 0.
         ls_response_read-chat-messages = CORRESPONDING #( lt_msg ).
       ENDIF.
+
+      LOOP AT lt_msg ASSIGNING FIELD-SYMBOL(<ls_msg>).
+        ls_response_read-chat-max_seq_no = <ls_msg>-seqno.
+      ENDLOOP.
 
       l_json = /ui2/cl_json=>serialize(
         EXPORTING
@@ -160,10 +167,13 @@ CLASS ycl_aaic_rest_chat IMPLEMENTATION.
         lt_rng_username = VALUE #( ( sign = 'I' option = 'EQ' low = l_username ) ).
       ENDIF.
 
-      SELECT id ,api ,username ,chat_date ,chat_time, blocked
-        FROM yaaic_chat
+      SELECT a~id, a~api, a~username, a~chat_date, a~chat_time, a~blocked, MAX( b~seqno ) AS max_seq_no
+        FROM yaaic_chat AS a
+        LEFT OUTER JOIN yaaic_msg AS b
+        ON a~id = b~id
         WHERE chat_date IN @lt_rng_chat_date
         AND username IN @lt_rng_username
+        GROUP BY a~id, a~api, a~username, a~chat_date, a~chat_time, a~blocked
         INTO TABLE @DATA(lt_chat).
 
       IF sy-subrc = 0.
