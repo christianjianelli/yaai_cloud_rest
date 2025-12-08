@@ -45,7 +45,7 @@ ENDCLASS.
 
 
 
-CLASS ycl_aaic_rest_rag_doc IMPLEMENTATION.
+CLASS YCL_AAIC_REST_RAG_DOC IMPLEMENTATION.
 
 
   METHOD create.
@@ -108,6 +108,7 @@ CLASS ycl_aaic_rest_rag_doc IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+
 
   METHOD read.
 
@@ -197,6 +198,7 @@ CLASS ycl_aaic_rest_rag_doc IMPLEMENTATION.
 
   ENDMETHOD.
 
+
   METHOD update.
 
     DATA: lo_request TYPE REF TO if_web_http_request.
@@ -246,6 +248,7 @@ CLASS ycl_aaic_rest_rag_doc IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+
 
   METHOD delete.
 

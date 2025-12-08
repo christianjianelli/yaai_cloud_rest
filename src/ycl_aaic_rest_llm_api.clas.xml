@@ -5,7 +5,7 @@
    <VSEOCLASS>
     <CLSNAME>YCL_AAIC_REST_LLM_API</CLSNAME>
     <LANGU>E</LANGU>
-    <DESCRIPT>ABAP AI tools Cloud - REST Resource Hello World</DESCRIPT>
+    <DESCRIPT>ABAP AI tools Cloud - REST Resource LLM Api</DESCRIPT>
     <STATE>1</STATE>
     <CLSCCINCL>X</CLSCCINCL>
     <FIXPT>X</FIXPT>

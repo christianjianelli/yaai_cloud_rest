@@ -5,7 +5,7 @@
    <VSEOCLASS>
     <CLSNAME>YCL_AAIC_REST_RAG_DOC</CLSNAME>
     <LANGU>E</LANGU>
-    <DESCRIPT>ABAP AI tools Cloud - REST Resource Hello World</DESCRIPT>
+    <DESCRIPT>ABAP AI tools Cloud - REST Resource RAG Doc</DESCRIPT>
     <STATE>1</STATE>
     <CLSCCINCL>X</CLSCCINCL>
     <FIXPT>X</FIXPT>
