@@ -61,8 +61,7 @@ CLASS ycl_aaic_rest_async_task IMPLEMENTATION.
             startdate AS start_date, starttime AS start_time,
             enddate AS end_date, endtime AS end_time, response
         FROM yaaic_async
-       WHERE startdate IN @lt_rng_date
-         AND username IN @lt_rng_username
+       WHERE id = @l_id
         INTO @DATA(ls_async).
 
       ls_response_read-task = CORRESPONDING #( ls_async ).

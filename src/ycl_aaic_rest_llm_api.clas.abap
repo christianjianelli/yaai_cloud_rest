@@ -74,12 +74,12 @@ CLASS ycl_aaic_rest_llm_api IMPLEMENTATION.
 
       SELECT id, base_url
         FROM yaaic_api
-        INTO TABLE @DATA(lt_apis).
+        INTO TABLE @DATA(lt_apis). "#EC CI_NOWHERE
 
       SELECT id, model, default_model
         FROM yaaic_model
         ORDER BY PRIMARY KEY
-        INTO CORRESPONDING FIELDS OF TABLE @lt_models.
+        INTO CORRESPONDING FIELDS OF TABLE @lt_models. "#EC CI_NOWHERE
 
       LOOP AT lt_apis ASSIGNING FIELD-SYMBOL(<ls_api_db>).
 

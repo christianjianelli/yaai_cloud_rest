@@ -65,7 +65,7 @@ CLASS ycl_aaic_rest_handler IMPLEMENTATION.
               request                   = request
           ).
 
-        CATCH cx_logoff_failed.
+        CATCH cx_logoff_failed ##NO_HANDLER.
       ENDTRY.
 
       RETURN.
