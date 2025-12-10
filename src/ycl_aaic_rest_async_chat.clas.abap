@@ -95,10 +95,6 @@ CLASS ycl_aaic_rest_async_chat IMPLEMENTATION.
     ls_request-chat_id = to_upper( ls_request-chat_id ).
     ls_request-api = to_upper( ls_request-api ).
 
-*    DATA(l_started) = abap_false.
-*
-*    DATA(lo_aaic_async) = NEW ycl_aaic_async( ).
-
     CASE ls_request-api.
 
       WHEN yif_aaic_const=>c_openai. " OpenAI
