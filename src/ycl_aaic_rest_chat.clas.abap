@@ -12,7 +12,21 @@ CLASS ycl_aaic_rest_chat DEFINITION INHERITING FROM ycl_aaic_rest_resource
              msg_time TYPE yde_aaic_msg_time,
            END OF ty_msg_s,
 
+            BEGIN OF ty_log_s,
+             id       TYPE string,
+             seqno    TYPE yde_aaic_seqno,
+             message  TYPE yde_aaic_log_message,
+             username TYPE usnam,
+             log_date TYPE yde_aaic_chat_date,
+             log_time TYPE yde_aaic_chat_time,
+             msgid    TYPE symsgid,
+             msgno    TYPE symsgno,
+             msgty    TYPE bapi_mtype,
+           END OF ty_log_s,
+
            ty_msg_t TYPE STANDARD TABLE OF ty_msg_s WITH EMPTY KEY,
+
+           ty_log_t TYPE STANDARD TABLE OF ty_log_s WITH EMPTY KEY,
 
            BEGIN OF ty_chat_query_s,
              id         TYPE string,
@@ -35,6 +49,7 @@ CLASS ycl_aaic_rest_chat DEFINITION INHERITING FROM ycl_aaic_rest_resource
              max_seq_no TYPE i,
              blocked    TYPE abap_bool,
              messages   TYPE ty_msg_t,
+             log        TYPE ty_log_t,
            END OF ty_chat_s,
 
            BEGIN OF ty_response_read_s,
@@ -143,6 +158,15 @@ CLASS ycl_aaic_rest_chat IMPLEMENTATION.
       LOOP AT lt_msg ASSIGNING FIELD-SYMBOL(<ls_msg>).
         ls_response_read-chat-max_seq_no = <ls_msg>-seqno.
       ENDLOOP.
+
+      SELECT id, seqno, message, username, log_date, log_time, msgid, msgno, msgty
+        FROM yaaic_log
+       WHERE id = @l_id
+        INTO TABLE @DATA(lt_log).
+
+      IF sy-subrc = 0.
+        ls_response_read-chat-log = CORRESPONDING #( lt_log ).
+      ENDIF.
 
       l_json = /ui2/cl_json=>serialize(
         EXPORTING
