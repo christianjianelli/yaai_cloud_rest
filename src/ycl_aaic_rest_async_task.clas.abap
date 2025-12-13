@@ -53,7 +53,7 @@ CLASS ycl_aaic_rest_async_task IMPLEMENTATION.
     DATA(l_id) = to_upper( i_o_request->get_form_field( i_name = 'id' ) ).
     DATA(l_datefrom) = i_o_request->get_form_field( i_name = 'datefrom' ).
     DATA(l_dateto) = i_o_request->get_form_field( i_name = 'dateto' ).
-    DATA(l_username) = to_upper( i_o_request->get_form_field( i_name = 'username' ) ).
+    DATA(l_username) = i_o_request->get_form_field( i_name = 'username' ).
 
     IF l_id IS NOT INITIAL.
 

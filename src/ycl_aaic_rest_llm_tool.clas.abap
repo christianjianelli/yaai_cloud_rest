@@ -107,6 +107,10 @@ CLASS ycl_aaic_rest_llm_tool IMPLEMENTATION.
 
   METHOD read.
 
+    DATA: lt_rng_class_name  TYPE RANGE OF yaaic_tool-class_name,
+          lt_rng_method_name TYPE RANGE OF yaaic_tool-method_name,
+          lt_rng_description TYPE RANGE OF yaaic_tool-description.
+
     DATA: ls_response_query TYPE ty_response_query_s,
           ls_response_read  TYPE ty_response_read_s.
 
@@ -115,6 +119,8 @@ CLASS ycl_aaic_rest_llm_tool IMPLEMENTATION.
     DATA(l_class_name) = i_o_request->get_form_field( i_name = 'class_name' ).
 
     DATA(l_method_name) = i_o_request->get_form_field( i_name = 'method_name' ).
+
+    DATA(l_description) = i_o_request->get_form_field( i_name = 'description' ).
 
     IF l_class_name IS NOT INITIAL AND l_method_name IS NOT INITIAL.
 
@@ -142,9 +148,24 @@ CLASS ycl_aaic_rest_llm_tool IMPLEMENTATION.
 
     ELSE.
 
+      IF l_class_name IS NOT INITIAL.
+        lt_rng_class_name = VALUE #( ( sign = 'I' option = 'CP' low = |*{ l_class_name }*| ) ).
+      ENDIF.
+
+      IF l_method_name IS NOT INITIAL.
+        lt_rng_method_name = VALUE #( ( sign = 'I' option = 'CP' low = |*{ l_method_name }*| ) ).
+      ENDIF.
+
+      IF l_description IS NOT INITIAL.
+        lt_rng_description = VALUE #( ( sign = 'I' option = 'CP' low = |*{ l_description }*| ) ).
+      ENDIF.
+
       SELECT class_name, method_name, proxy_class, description
         FROM yaaic_tool
-          INTO TABLE @DATA(lt_tool).                    "#EC CI_NOWHERE
+        WHERE class_name IN @lt_rng_class_name
+          AND method_name IN @lt_rng_method_name
+          AND description IN @lt_rng_description
+          INTO TABLE @DATA(lt_tool).
 
       IF sy-subrc = 0.
         ls_response_query-tools = CORRESPONDING #( lt_tool ).

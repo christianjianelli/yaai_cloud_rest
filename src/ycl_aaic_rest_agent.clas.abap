@@ -217,8 +217,8 @@ CLASS ycl_aaic_rest_agent IMPLEMENTATION.
 
     ELSE. " Query
 
-      DATA(l_agent_name) = to_upper( i_o_request->get_form_field( i_name = 'agent_name' ) ).
-      DATA(l_agent_description) = to_upper( i_o_request->get_form_field( i_name = 'agent_description' ) ).
+      DATA(l_agent_name) = i_o_request->get_form_field( i_name = 'agent_name' ).
+      DATA(l_agent_description) = i_o_request->get_form_field( i_name = 'agent_description' ).
 
       IF l_agent_name IS NOT INITIAL.
         lt_rng_agent_name = VALUE #( ( sign = 'I' option = 'CP' low = |*{ l_agent_name }*| ) ).
