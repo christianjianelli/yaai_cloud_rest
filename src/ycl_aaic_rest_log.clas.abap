@@ -90,7 +90,8 @@ CLASS ycl_aaic_rest_log IMPLEMENTATION.
           WHERE id IN @lt_rng_id
             AND log_date IN @lt_rng_log_date
             AND username IN @lt_rng_username
-            INTO TABLE @DATA(lt_log).
+            INTO TABLE @DATA(lt_log)
+            UP TO 100 ROWS.
 
       IF sy-subrc = 0.
         ls_response_query-messages = CORRESPONDING #( lt_log ).

@@ -91,7 +91,8 @@ CLASS ycl_aaic_rest_async_task IMPLEMENTATION.
       FROM yaaic_async
         WHERE startdate IN @lt_rng_date
           AND username IN @lt_rng_username
-          INTO TABLE @DATA(lt_async).
+          INTO TABLE @DATA(lt_async)
+          UP TO 100 ROWS.
 
       ls_response_query-tasks = CORRESPONDING #( lt_async ).
 

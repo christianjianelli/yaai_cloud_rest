@@ -239,7 +239,8 @@ CLASS ycl_aaic_rest_agent IMPLEMENTATION.
             ON a~rag_ctx_id = c~id
             WHERE a~name IN @lt_rng_agent_name
               AND a~description IN @lt_rng_agent_descr
-            INTO TABLE @DATA(lt_agent).
+            INTO TABLE @DATA(lt_agent)
+            UP TO 100 ROWS.
 
         CATCH cx_sy_open_sql_data_error INTO lo_ex_sy_open_sql_data_error.
 
