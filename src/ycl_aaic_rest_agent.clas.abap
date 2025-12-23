@@ -166,7 +166,7 @@ CLASS ycl_aaic_rest_agent IMPLEMENTATION.
       TRY.
 
           SELECT SINGLE a~id, a~name, a~description, a~sys_inst_id, b~filename AS filename_si, b~description AS file_si_descr,
-                        a~rag_ctx_id, b~filename AS filename_ctx, b~description AS file_ctx_descr, a~prompt_template
+                        a~rag_ctx_id, c~filename AS filename_ctx, c~description AS file_ctx_descr, a~prompt_template
             FROM yaaic_agent AS a
             LEFT OUTER JOIN yaaic_rag AS b
             ON a~sys_inst_id = b~id
@@ -231,7 +231,7 @@ CLASS ycl_aaic_rest_agent IMPLEMENTATION.
       TRY.
 
           SELECT a~id, a~name, a~description, a~sys_inst_id, b~filename AS filename_si, b~description AS file_si_descr,
-                 a~rag_ctx_id, b~filename AS filename_ctx, b~description AS file_ctx_descr, a~prompt_template
+                 a~rag_ctx_id, c~filename AS filename_ctx, c~description AS file_ctx_descr, a~prompt_template
             FROM yaaic_agent AS a
             LEFT OUTER JOIN yaaic_rag AS b
             ON a~sys_inst_id = b~id
@@ -309,6 +309,10 @@ CLASS ycl_aaic_rest_agent IMPLEMENTATION.
 
           ls_request-sys_inst_id = l_sys_inst_id.
 
+        ELSE.
+
+          CLEAR ls_request-sys_inst_id.
+
         ENDIF.
 
         IF ls_request-filename_ctx IS NOT INITIAL.
@@ -321,6 +325,10 @@ CLASS ycl_aaic_rest_agent IMPLEMENTATION.
           ).
 
           ls_request-rag_ctx_id = l_rag_ctx_id.
+
+        ELSE.
+
+          CLEAR ls_request-rag_ctx_id.
 
         ENDIF.
 
