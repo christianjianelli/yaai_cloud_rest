@@ -6,11 +6,19 @@ CLASS ycl_aaic_rest_agent DEFINITION INHERITING FROM ycl_aaic_rest_resource
   PUBLIC SECTION.
 
     TYPES: BEGIN OF ty_tool_s,
-             class_name  TYPE string,
-             method_name TYPE string,
-             proxy_class TYPE string,
-             description TYPE string,
+             class_name     TYPE string,
+             method_name    TYPE string,
+             proxy_class    TYPE string,
+             description    TYPE string,
+             load_on_demand TYPE abap_bool,
            END OF ty_tool_s,
+
+           BEGIN OF ty_doc_s,
+             rag_id      TYPE yde_aaic_rag_id,
+             filename    TYPE yde_aaic_filename,
+             description TYPE yde_aaic_description,
+             keywords    TYPE yde_aaic_keywords,
+           END OF ty_doc_s,
 
            BEGIN OF ty_model_s,
              api            TYPE string,
@@ -22,6 +30,8 @@ CLASS ycl_aaic_rest_agent DEFINITION INHERITING FROM ycl_aaic_rest_resource
            END OF ty_model_s,
 
            ty_tool_t  TYPE STANDARD TABLE OF ty_tool_s WITH EMPTY KEY,
+
+           ty_doc_t   TYPE STANDARD TABLE OF ty_doc_s WITH EMPTY KEY,
 
            ty_model_t TYPE STANDARD TABLE OF ty_model_s WITH EMPTY KEY,
 
@@ -37,6 +47,7 @@ CLASS ycl_aaic_rest_agent DEFINITION INHERITING FROM ycl_aaic_rest_resource
              file_ctx_descr  TYPE yde_aaic_description,
              prompt_template TYPE yde_aaic_prompt_template,
              tools           TYPE ty_tool_t,
+             docs            TYPE ty_doc_t,
              models          TYPE ty_model_t,
            END OF ty_agent_s,
 
@@ -198,10 +209,19 @@ CLASS ycl_aaic_rest_agent IMPLEMENTATION.
 
       ls_response_read-agent = CORRESPONDING #( ls_agent ).
 
-      SELECT class_name, method_name, proxy_class, description
+      SELECT class_name, method_name, proxy_class, description, load_on_demand
         FROM yaaic_agent_tool
         WHERE id = @l_agent_id
         INTO CORRESPONDING FIELDS OF TABLE @ls_response_read-agent-tools.
+
+      SELECT b~rag_id, c~filename, c~description, c~keywords
+        FROM yaaic_agent AS a
+        INNER JOIN yaaic_agent_rag AS b
+        ON a~id = b~id
+        INNER JOIN yaaic_rag AS c
+        ON a~id = c~id
+        WHERE a~id = @l_agent_id
+        INTO CORRESPONDING FIELDS OF TABLE @ls_response_read-agent-docs.
 
       SELECT api, model, temperature, verbosity, reasoning, max_tool_calls
         FROM yaaic_agent_mdl
@@ -338,6 +358,7 @@ CLASS ycl_aaic_rest_agent IMPLEMENTATION.
           EXPORTING
             i_s_agent        = CORRESPONDING #( ls_request )
             i_t_agent_tools  = CORRESPONDING #( ls_request-tools )
+            i_t_agent_docs   = CORRESPONDING #( ls_request-docs )
             i_t_agent_models = CORRESPONDING #( ls_request-models )
           IMPORTING
             e_updated        = ls_response-updated
