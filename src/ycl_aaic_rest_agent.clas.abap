@@ -14,10 +14,10 @@ CLASS ycl_aaic_rest_agent DEFINITION INHERITING FROM ycl_aaic_rest_resource
            END OF ty_tool_s,
 
            BEGIN OF ty_doc_s,
-             rag_id      TYPE yde_aaic_rag_id,
-             filename    TYPE yde_aaic_filename,
-             description TYPE yde_aaic_description,
-             keywords    TYPE yde_aaic_keywords,
+             rag_id      TYPE string,
+             filename    TYPE string,
+             description TYPE string,
+             keywords    TYPE string,
            END OF ty_doc_s,
 
            BEGIN OF ty_model_s,
@@ -214,14 +214,14 @@ CLASS ycl_aaic_rest_agent IMPLEMENTATION.
         WHERE id = @l_agent_id
         INTO CORRESPONDING FIELDS OF TABLE @ls_response_read-agent-tools.
 
-      SELECT b~rag_id, c~filename, c~description, c~keywords
-        FROM yaaic_agent AS a
-        INNER JOIN yaaic_agent_rag AS b
-        ON a~id = b~id
-        INNER JOIN yaaic_rag AS c
-        ON a~id = c~id
+      SELECT a~rag_id, b~filename, b~description, b~keywords
+        FROM yaaic_agent_rag AS a
+        INNER JOIN yaaic_rag AS b
+        ON a~rag_id = b~id
         WHERE a~id = @l_agent_id
-        INTO CORRESPONDING FIELDS OF TABLE @ls_response_read-agent-docs.
+        INTO TABLE @DATA(lt_agent_rag).
+
+      ls_response_read-agent-docs = CORRESPONDING #( lt_agent_rag ).
 
       SELECT api, model, temperature, verbosity, reasoning, max_tool_calls
         FROM yaaic_agent_mdl
