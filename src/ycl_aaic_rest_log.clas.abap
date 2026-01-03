@@ -43,6 +43,7 @@ CLASS ycl_aaic_rest_log IMPLEMENTATION.
 
     DATA: lt_rng_id       TYPE RANGE OF yaaic_log-id,
           lt_rng_log_date TYPE RANGE OF yaaic_log-log_date,
+          lt_rng_log_time TYPE RANGE OF yaaic_log-log_time,
           lt_rng_username TYPE RANGE OF yaaic_log-username.
 
     DATA: ls_response_read  TYPE ty_response_read_s,
@@ -69,12 +70,36 @@ CLASS ycl_aaic_rest_log IMPLEMENTATION.
 
       DATA(l_datefrom) = i_o_request->get_form_field( i_name = 'datefrom' ).
       DATA(l_dateto) = i_o_request->get_form_field( i_name = 'dateto' ).
+      DATA(l_timefrom) = i_o_request->get_form_field( i_name = 'timefrom' ).
+      DATA(l_timeto) = i_o_request->get_form_field( i_name = 'timeto' ).
       DATA(l_username) = i_o_request->get_form_field( i_name = 'username' ).
+
+      IF l_datefrom CO ' 0'.
+        CLEAR l_datefrom.
+      ENDIF.
+
+      IF l_dateto CO ' 0'.
+        CLEAR l_dateto.
+      ENDIF.
+
+      IF l_timefrom CO ' 0'.
+        CLEAR l_timefrom.
+      ENDIF.
+
+      IF l_timeto CO ' 0'.
+        CLEAR l_timeto.
+      ENDIF.
 
       IF l_datefrom IS NOT INITIAL AND l_dateto IS NOT INITIAL.
         lt_rng_log_date = VALUE #( ( sign = 'I' option = 'BT' low = l_datefrom high = l_dateto ) ).
       ELSEIF l_datefrom IS NOT INITIAL AND l_dateto IS INITIAL.
         lt_rng_log_date = VALUE #( ( sign = 'I' option = 'EQ' low = l_datefrom ) ).
+      ENDIF.
+
+      IF l_timefrom IS NOT INITIAL AND l_timeto IS NOT INITIAL.
+        lt_rng_log_time = VALUE #( ( sign = 'I' option = 'BT' low = l_timefrom high = l_timeto ) ).
+      ELSEIF l_datefrom IS NOT INITIAL AND l_dateto IS INITIAL.
+        lt_rng_log_time = VALUE #( ( sign = 'I' option = 'GE' low = l_timefrom ) ).
       ENDIF.
 
       IF l_id IS NOT INITIAL.
@@ -91,6 +116,7 @@ CLASS ycl_aaic_rest_log IMPLEMENTATION.
           FROM yaaic_log
             WHERE id IN @lt_rng_id
               AND log_date IN @lt_rng_log_date
+              AND log_time IN @lt_rng_log_time
               AND username IN @lt_rng_username
               INTO TABLE @DATA(lt_log)
               UP TO 100 ROWS.
@@ -101,6 +127,7 @@ CLASS ycl_aaic_rest_log IMPLEMENTATION.
           FROM yaaic_log
             WHERE id IN @lt_rng_id
               AND log_date IN @lt_rng_log_date
+              AND log_time IN @lt_rng_log_time
               AND username IN @lt_rng_username
               INTO TABLE @lt_log.
 
