@@ -85,13 +85,26 @@ CLASS ycl_aaic_rest_log IMPLEMENTATION.
         lt_rng_username = VALUE #( ( sign = 'I' option = 'EQ' low = l_username ) ).
       ENDIF.
 
-      SELECT id, seqno, message, username, log_date, log_time, msgid, msgno, msgty
-        FROM yaaic_log
-          WHERE id IN @lt_rng_id
-            AND log_date IN @lt_rng_log_date
-            AND username IN @lt_rng_username
-            INTO TABLE @DATA(lt_log)
-            UP TO 100 ROWS.
+      IF lt_rng_log_date IS INITIAL.
+
+        SELECT id, seqno, message, username, log_date, log_time, msgid, msgno, msgty
+          FROM yaaic_log
+            WHERE id IN @lt_rng_id
+              AND log_date IN @lt_rng_log_date
+              AND username IN @lt_rng_username
+              INTO TABLE @DATA(lt_log)
+              UP TO 100 ROWS.
+
+      ELSE.
+
+        SELECT id, seqno, message, username, log_date, log_time, msgid, msgno, msgty
+          FROM yaaic_log
+            WHERE id IN @lt_rng_id
+              AND log_date IN @lt_rng_log_date
+              AND username IN @lt_rng_username
+              INTO TABLE @lt_log.
+
+      ENDIF.
 
       IF sy-subrc = 0.
         ls_response_query-messages = CORRESPONDING #( lt_log ).
