@@ -228,6 +228,13 @@ CLASS ycl_aaic_rest_agent IMPLEMENTATION.
         WHERE id = @l_agent_id
         INTO CORRESPONDING FIELDS OF TABLE @ls_response_read-agent-models.
 
+      LOOP AT ls_response_read-agent-models ASSIGNING FIELD-SYMBOL(<ls_model>).
+        IF <ls_model>-api <> yif_aaic_const=>c_openai.
+          CLEAR: <ls_model>-reasoning,
+                 <ls_model>-verbosity.
+        ENDIF.
+      ENDLOOP.
+
       l_json = /ui2/cl_json=>serialize(
         EXPORTING
           data = ls_response_read
