@@ -6,13 +6,15 @@ CLASS ycl_aaic_rest_chat DEFINITION INHERITING FROM ycl_aaic_rest_resource
   PUBLIC SECTION.
 
     TYPES: BEGIN OF ty_msg_s,
-             seqno    TYPE yde_aaic_seqno,
-             msg      TYPE yde_aaic_chat_msg,
-             msg_date TYPE yde_aaic_msg_date,
-             msg_time TYPE yde_aaic_msg_time,
+             seqno        TYPE yde_aaic_seqno,
+             msg          TYPE yde_aaic_chat_msg,
+             msg_date     TYPE yde_aaic_msg_date,
+             msg_time     TYPE yde_aaic_msg_time,
+             total_tokens TYPE yde_aaic_tokens,
+             model        TYPE yde_aaic_model,
            END OF ty_msg_s,
 
-            BEGIN OF ty_log_s,
+           BEGIN OF ty_log_s,
              id       TYPE string,
              seqno    TYPE yde_aaic_seqno,
              message  TYPE yde_aaic_log_message,
@@ -145,7 +147,7 @@ CLASS ycl_aaic_rest_chat IMPLEMENTATION.
 
       ls_response_read-chat = CORRESPONDING #( ls_chat ).
 
-      SELECT id , seqno, msg, msg_date, msg_time
+      SELECT id , seqno, msg, msg_date, msg_time, tokens as total_tokens, model
         FROM yaaic_msg
         WHERE id = @l_id
         ORDER BY id, seqno
