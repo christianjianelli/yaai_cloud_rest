@@ -74,8 +74,6 @@ CLASS ycl_aaic_rest_chat DEFINITION INHERITING FROM ycl_aaic_rest_resource
              error   TYPE string,
            END OF ty_chat_delete_s.
 
-    METHODS create REDEFINITION.
-
     METHODS read REDEFINITION.
 
     METHODS update REDEFINITION.
@@ -91,23 +89,6 @@ ENDCLASS.
 
 
 CLASS ycl_aaic_rest_chat IMPLEMENTATION.
-
-  METHOD create.
-
-    TRY.
-
-        i_o_response->set_content_type( content_type = 'application/json' ).
-
-        i_o_response->set_text(
-          EXPORTING
-            i_text = CONV #( '{"state":"processing"}' )
-        ).
-
-      CATCH cx_web_message_error ##NO_HANDLER.
-
-    ENDTRY.
-
-  ENDMETHOD.
 
   METHOD read.
 
