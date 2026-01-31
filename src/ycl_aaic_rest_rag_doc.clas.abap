@@ -225,6 +225,7 @@ CLASS YCL_AAIC_REST_RAG_DOC IMPLEMENTATION.
             i_description = l_description
             i_keywords    = l_keywords
             i_content     = l_file_content
+            i_append      = abap_false
           IMPORTING
             e_updated     = ls_response-updated
             e_error       = ls_response-error
