@@ -43,15 +43,16 @@ CLASS ycl_aaic_rest_chat DEFINITION INHERITING FROM ycl_aaic_rest_resource
            ty_chat_t TYPE STANDARD TABLE OF ty_chat_query_s WITH EMPTY KEY,
 
            BEGIN OF ty_chat_s,
-             id         TYPE string,
-             api        TYPE yde_aaic_api,
-             username   TYPE usnam,
-             chat_date  TYPE yde_aaic_chat_date,
-             chat_time  TYPE yde_aaic_chat_time,
-             max_seq_no TYPE i,
-             blocked    TYPE abap_bool,
-             messages   TYPE ty_msg_t,
-             log        TYPE ty_log_t,
+             id          TYPE string,
+             api         TYPE yde_aaic_api,
+             username    TYPE usnam,
+             chat_date   TYPE yde_aaic_chat_date,
+             chat_time   TYPE yde_aaic_chat_time,
+             max_seq_no  TYPE i,
+             blocked     TYPE abap_bool,
+             plan_rag_id TYPE string,
+             messages    TYPE ty_msg_t,
+             log         TYPE ty_log_t,
            END OF ty_chat_s,
 
            BEGIN OF ty_response_read_s,
@@ -128,7 +129,18 @@ CLASS ycl_aaic_rest_chat IMPLEMENTATION.
 
       ls_response_read-chat = CORRESPONDING #( ls_chat ).
 
-      SELECT id , seqno, msg, msg_date, msg_time, tokens as total_tokens, model
+      SELECT id, chat_id, rag_id
+        FROM yaaic_agent_plan
+        WHERE chat_id = @l_id
+        INTO @DATA(ls_agent_plan)
+        UP TO 1 ROWS.
+      ENDSELECT.
+
+      IF sy-subrc = 0.
+        ls_response_read-chat-plan_rag_id = ls_agent_plan-rag_id.
+      ENDIF.
+
+      SELECT id , seqno, msg, msg_date, msg_time, tokens AS total_tokens, model
         FROM yaaic_msg
         WHERE id = @l_id
         ORDER BY id, seqno
