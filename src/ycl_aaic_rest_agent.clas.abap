@@ -168,7 +168,8 @@ CLASS ycl_aaic_rest_agent IMPLEMENTATION.
     DATA: ls_response_query TYPE ty_response_query_s,
           ls_response_read  TYPE ty_response_read_s.
 
-    DATA: l_json TYPE string.
+    DATA: l_json TYPE string,
+          l_id   TYPE yaaic_agent-id.
 
     DATA(l_agent_id) = to_upper( i_o_request->get_form_field( i_name = 'id' ) ).
 
@@ -257,6 +258,10 @@ CLASS ycl_aaic_rest_agent IMPLEMENTATION.
 
       TRY.
 
+          IF strlen( l_agent_name ) = 32.
+            l_id = l_agent_name.
+          ENDIF.
+
           SELECT a~id, a~name, a~description, a~sys_inst_id, b~filename AS filename_si, b~description AS file_si_descr,
                  a~rag_ctx_id, c~filename AS filename_ctx, c~description AS file_ctx_descr, a~prompt_template
             FROM yaaic_agent AS a
@@ -264,8 +269,9 @@ CLASS ycl_aaic_rest_agent IMPLEMENTATION.
             ON a~sys_inst_id = b~id
             LEFT OUTER JOIN yaaic_rag AS c
             ON a~rag_ctx_id = c~id
-            WHERE a~name IN @lt_rng_agent_name
-              AND a~description IN @lt_rng_agent_descr
+            WHERE ( a~name IN @lt_rng_agent_name
+              AND a~description IN @lt_rng_agent_descr )
+              OR a~id = @l_id
             INTO TABLE @DATA(lt_agent)
             UP TO 100 ROWS.
 
