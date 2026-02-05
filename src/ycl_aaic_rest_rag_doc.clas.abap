@@ -45,7 +45,7 @@ ENDCLASS.
 
 
 
-CLASS YCL_AAIC_REST_RAG_DOC IMPLEMENTATION.
+CLASS ycl_aaic_rest_rag_doc IMPLEMENTATION.
 
 
   METHOD create.
@@ -205,13 +205,15 @@ CLASS YCL_AAIC_REST_RAG_DOC IMPLEMENTATION.
 
     DATA ls_response TYPE ty_response_update_s.
 
-    DATA l_json TYPE string.
+    DATA:l_json           TYPE string,
+         l_file_content   TYPE string,
+         l_file_content_x TYPE string.
 
     TRY.
 
         lo_request = i_o_request->get_multipart( index = 1 ).
 
-        DATA(l_file_content) = lo_request->get_text( ).
+        l_file_content = lo_request->get_text( ).
 
         DATA(l_id) = i_o_request->get_form_field( i_name = 'id' ).
 
@@ -219,17 +221,36 @@ CLASS YCL_AAIC_REST_RAG_DOC IMPLEMENTATION.
 
         DATA(l_keywords) = i_o_request->get_form_field( i_name = 'keywords' ).
 
-        NEW ycl_aaic_rag_db( )->update(
-          EXPORTING
-            i_id          = CONV #( l_id )
-            i_description = l_description
-            i_keywords    = l_keywords
-            i_content     = l_file_content
-            i_append      = abap_false
-          IMPORTING
-            e_updated     = ls_response-updated
-            e_error       = ls_response-error
-        ).
+        DATA(l_no_file_content) = i_o_request->get_form_field( i_name = 'no_file_content' ).
+
+        IF l_no_file_content IS INITIAL.
+
+          NEW ycl_aaic_rag_db( )->update(
+            EXPORTING
+              i_id          = CONV #( l_id )
+              i_description = l_description
+              i_keywords    = l_keywords
+              i_content     = l_file_content
+              i_append      = abap_false
+            IMPORTING
+              e_updated     = ls_response-updated
+              e_error       = ls_response-error
+          ).
+
+        ELSE.
+
+          NEW ycl_aaic_rag_db( )->update(
+            EXPORTING
+              i_id          = CONV #( l_id )
+              i_description = l_description
+              i_keywords    = l_keywords
+              i_append      = abap_false
+            IMPORTING
+              e_updated     = ls_response-updated
+              e_error       = ls_response-error
+          ).
+
+        ENDIF.
 
         l_json = /ui2/cl_json=>serialize(
           EXPORTING
