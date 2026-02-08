@@ -147,12 +147,21 @@ CLASS ycl_aaic_rest_chat IMPLEMENTATION.
         INTO TABLE @DATA(lt_msg).
 
       IF sy-subrc = 0.
-        ls_response_read-chat-messages = CORRESPONDING #( lt_msg ).
-      ENDIF.
 
-      LOOP AT lt_msg ASSIGNING FIELD-SYMBOL(<ls_msg>).
-        ls_response_read-chat-max_seq_no = <ls_msg>-seqno.
-      ENDLOOP.
+        LOOP AT lt_msg ASSIGNING FIELD-SYMBOL(<ls_msg>).
+
+          <ls_msg>-msg = escape( val    = <ls_msg>-msg
+                                 format = cl_abap_format=>e_html_text ).
+
+        ENDLOOP.
+
+        IF sy-subrc = 0.
+          ls_response_read-chat-max_seq_no = <ls_msg>-seqno.
+        ENDIF.
+
+        ls_response_read-chat-messages = CORRESPONDING #( lt_msg ).
+
+      ENDIF.
 
       SELECT id, seqno, message, username, log_date, log_time, msgid, msgno, msgty
         FROM yaaic_log
