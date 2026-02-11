@@ -95,13 +95,111 @@ CLASS ycl_aaic_rest_async_task IMPLEMENTATION.
       ENDIF.
 
       SELECT id, chat_id, name, status, username,
-             startdate AS start_date, starttime AS start_time,
-             enddate AS end_date, endtime AS end_time, response, cancelled
+             startdate AS start_date, starttime AS start_time, enddate AS end_date,
+             endtime AS end_time, response, cancelled, monitor
       FROM yaaic_async
         WHERE startdate IN @lt_rng_date
           AND username IN @lt_rng_username
           INTO TABLE @DATA(lt_async)
           UP TO 100 ROWS.
+
+      LOOP AT lt_async ASSIGNING FIELD-SYMBOL(<ls_async>).
+
+        IF <ls_async>-monitor IS INITIAL OR
+           to_upper( <ls_async>-status ) = 'CANCELLED' OR
+           to_upper( <ls_async>-status ) = 'FINISHED' OR
+           to_upper( <ls_async>-status ) = 'ERRONEOUS'.
+          CONTINUE.
+        ENDIF.
+
+        TRY.
+
+            DATA(lo_process_monitor) = cl_bgmc_process_factory=>create_monitor_from_string( <ls_async>-monitor ).
+
+            DATA(l_state) = lo_process_monitor->get_state( ).
+
+            "States of a background process:
+
+            "  The state is unknown.
+            "  Can e.g. happen if the monitored process is too old and the logs have been cleaned up.
+            "  unknown    VALUE IS INITIAL
+
+            "  An application or runtime error has occurred.
+            "  erroneous  VALUE 1
+
+            "  The process has not been started.
+            "  new        VALUE 2
+
+            "  The process is running.
+            "  running    VALUE 3
+
+            "  The process has been executed successfully.
+            "  successful VALUE 4
+
+            CASE l_state.
+
+              WHEN if_bgmc_process_monitor=>gcs_state-unknown.
+
+                IF <ls_async>-status <> yif_aaic_async=>mc_task_unknown.
+
+                  <ls_async>-status = yif_aaic_async=>mc_task_unknown.
+
+                  UPDATE yaaic_async SET status = @<ls_async>-status
+                    WHERE id = @<ls_async>-id.
+
+                ENDIF.
+
+              WHEN if_bgmc_process_monitor=>gcs_state-new.
+
+                IF <ls_async>-status <> yif_aaic_async=>mc_task_created.
+
+                  <ls_async>-status = yif_aaic_async=>mc_task_created.
+
+                  UPDATE yaaic_async SET status = @<ls_async>-status
+                    WHERE id = @<ls_async>-id.
+
+                ENDIF.
+
+              WHEN if_bgmc_process_monitor=>gcs_state-running.
+
+                IF <ls_async>-status <> yif_aaic_async=>mc_task_running.
+
+                  <ls_async>-status = yif_aaic_async=>mc_task_running.
+
+                  UPDATE yaaic_async SET status = @<ls_async>-status
+                    WHERE id = @<ls_async>-id.
+
+                ENDIF.
+
+              WHEN if_bgmc_process_monitor=>gcs_state-successful.
+
+                IF <ls_async>-status <> yif_aaic_async=>mc_task_finished.
+
+                  <ls_async>-status = yif_aaic_async=>mc_task_finished.
+
+                  UPDATE yaaic_async SET status = @<ls_async>-status
+                    WHERE id = @<ls_async>-id.
+
+                ENDIF.
+
+              WHEN if_bgmc_process_monitor=>gcs_state-erroneous.
+
+                IF <ls_async>-status <> yif_aaic_async=>mc_task_failed.
+
+                  <ls_async>-status = yif_aaic_async=>mc_task_failed.
+
+                  UPDATE yaaic_async SET status = @<ls_async>-status
+                    WHERE id = @<ls_async>-id.
+
+                ENDIF.
+
+            ENDCASE.
+
+          CATCH cx_bgmc ##NO_HANDLER.
+            EXIT.
+        ENDTRY.
+
+      ENDLOOP.
 
       ls_response_query-tasks = CORRESPONDING #( lt_async ).
 
