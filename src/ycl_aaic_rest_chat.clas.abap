@@ -26,9 +26,18 @@ CLASS ycl_aaic_rest_chat DEFINITION INHERITING FROM ycl_aaic_rest_resource
              msgty    TYPE bapi_mtype,
            END OF ty_log_s,
 
+           BEGIN OF ty_tool_s,
+             class_name  TYPE string,
+             method_name TYPE string,
+             proxy_class TYPE string,
+             description TYPE string,
+           END OF ty_tool_s,
+
            ty_msg_t TYPE STANDARD TABLE OF ty_msg_s WITH EMPTY KEY,
 
            ty_log_t TYPE STANDARD TABLE OF ty_log_s WITH EMPTY KEY,
+
+           ty_tools_t TYPE STANDARD TABLE OF ty_tool_s WITH EMPTY KEY,
 
            BEGIN OF ty_chat_query_s,
              id         TYPE string,
@@ -53,6 +62,7 @@ CLASS ycl_aaic_rest_chat DEFINITION INHERITING FROM ycl_aaic_rest_resource
              plan_rag_id TYPE string,
              messages    TYPE ty_msg_t,
              log         TYPE ty_log_t,
+             tools       TYPE ty_tools_t,
            END OF ty_chat_s,
 
            BEGIN OF ty_response_read_s,
@@ -170,6 +180,15 @@ CLASS ycl_aaic_rest_chat IMPLEMENTATION.
 
       IF sy-subrc = 0.
         ls_response_read-chat-log = CORRESPONDING #( lt_log ).
+      ENDIF.
+
+      SELECT class_name, method_name, proxy_class, description
+        FROM yaaic_tools
+          WHERE id = @l_id
+            INTO TABLE @DATA(lt_tools).
+
+      IF sy-subrc = 0.
+        ls_response_read-chat-tools = CORRESPONDING #( lt_tools ).
       ENDIF.
 
       l_json = /ui2/cl_json=>serialize(
