@@ -7,7 +7,7 @@ CLASS ycl_aaic_rest_handler DEFINITION
 
     INTERFACES if_http_service_extension.
 
-    CONSTANTS: mc_interface_name       TYPE c LENGTH 30 VALUE 'YCL_AAIC_REST_RESOURCE' ##NO_TEXT,
+    CONSTANTS: mc_class_name           TYPE c LENGTH 30 VALUE 'YCL_AAIC_REST_RESOURCE' ##NO_TEXT,
                mc_rest_resource_prefix TYPE c LENGTH 30 VALUE 'YCL_AAIC_REST' ##NO_TEXT,
                mc_create               TYPE string VALUE 'CREATE' ##NO_TEXT,
                mc_read                 TYPE string VALUE 'READ' ##NO_TEXT,
@@ -172,7 +172,7 @@ CLASS ycl_aaic_rest_handler IMPLEMENTATION.
     CLEAR: e_o_resource,
            e_error.
 
-    DATA(lo_class) = xco_cp_abap=>class( mc_interface_name ).
+    DATA(lo_class) = xco_cp_abap=>class( mc_class_name ).
 
     DATA(lt_subclasses) = lo_class->subclasses->all->get_names( ).
 

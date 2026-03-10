@@ -23,12 +23,10 @@ CLASS ycl_aaic_rest_async_chat DEFINITION INHERITING FROM ycl_aaic_rest_resource
            END OF ty_response_create_s,
 
            BEGIN OF ty_request_read_s,
-             chat_id TYPE string,
              task_id TYPE string,
            END OF ty_request_read_s,
 
            BEGIN OF ty_response_read_s,
-             chat_id TYPE string,
              task_id TYPE string,
              status  TYPE string,
            END OF ty_response_read_s.
