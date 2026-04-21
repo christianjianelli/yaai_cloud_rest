@@ -33,9 +33,9 @@ CLASS ycl_aaic_rest_chat DEFINITION INHERITING FROM ycl_aaic_rest_resource
              description TYPE string,
            END OF ty_tool_s,
 
-           ty_msg_t TYPE STANDARD TABLE OF ty_msg_s WITH EMPTY KEY,
+           ty_msg_t   TYPE STANDARD TABLE OF ty_msg_s WITH EMPTY KEY,
 
-           ty_log_t TYPE STANDARD TABLE OF ty_log_s WITH EMPTY KEY,
+           ty_log_t   TYPE STANDARD TABLE OF ty_log_s WITH EMPTY KEY,
 
            ty_tools_t TYPE STANDARD TABLE OF ty_tool_s WITH EMPTY KEY,
 
@@ -66,7 +66,8 @@ CLASS ycl_aaic_rest_chat DEFINITION INHERITING FROM ycl_aaic_rest_resource
            END OF ty_chat_s,
 
            BEGIN OF ty_response_read_s,
-             chat TYPE ty_chat_s,
+             chat  TYPE ty_chat_s,
+             chats TYPE ty_chat_t,
            END OF ty_response_read_s,
 
            BEGIN OF ty_response_query_s,
@@ -113,9 +114,21 @@ CLASS ycl_aaic_rest_chat IMPLEMENTATION.
           l_chat_date_to   TYPE yaaic_log-log_date,
           l_json           TYPE string.
 
-    DATA(l_id) = to_upper( i_o_request->get_form_field( i_name = 'id' ) ).
+    DATA(l_id) = condense( to_upper( i_o_request->get_form_field( i_name = 'id' ) ) ).
 
     IF l_id IS NOT INITIAL. " Read
+
+      IF l_id = 'UNDEFINED'.
+
+        "Not Found
+        i_o_response->set_status(
+          EXPORTING
+            i_code = 404
+        ).
+
+        RETURN.
+
+      ENDIF.
 
       SELECT SINGLE id ,api ,username ,chat_date ,chat_time, blocked
         FROM yaaic_chat
@@ -138,6 +151,14 @@ CLASS ycl_aaic_rest_chat IMPLEMENTATION.
       ENDIF.
 
       ls_response_read-chat = CORRESPONDING #( ls_chat ).
+
+      ls_response_read-chats = VALUE #( ( id = ls_response_read-chat-id
+                                          api = ls_response_read-chat-api
+                                          username = ls_response_read-chat-username
+                                          chat_date = ls_response_read-chat-chat_date
+                                          chat_time = ls_response_read-chat-chat_time
+                                          max_seq_no = ls_response_read-chat-max_seq_no
+                                          blocked = ls_response_read-chat-blocked ) ).
 
       SELECT id, chat_id, rag_id
         FROM yaaic_agent_plan
@@ -167,6 +188,7 @@ CLASS ycl_aaic_rest_chat IMPLEMENTATION.
 
         IF sy-subrc = 0.
           ls_response_read-chat-max_seq_no = <ls_msg>-seqno.
+          ls_response_read-chats[ 1 ]-max_seq_no = <ls_msg>-seqno.
         ENDIF.
 
         ls_response_read-chat-messages = CORRESPONDING #( lt_msg ).
